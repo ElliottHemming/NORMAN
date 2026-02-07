@@ -3,167 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NORMAN | Manager</title>
+    <title>NORMAN | Smart Dispatcher</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root {
-            --charcoal: #2F3437;
-            --sage: #87A96B;
-            --red: #ff4d4d;
-            --white: #ffffff;
-            --glass: rgba(255, 255, 255, 0.08);
-        }
-        body {
-            background-color: var(--charcoal);
-            color: var(--white);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-            min-height: 100vh;
-        }
-        header { text-align: center; margin-bottom: 25px; margin-top: 10px; }
-        .mascot { font-size: 65px; margin-bottom: 5px; }
-        h1 { margin: 0; letter-spacing: 5px; font-size: 30px; color: var(--sage); font-weight: 900; }
-        .tagline { font-size: 10px; opacity: 0.6; letter-spacing: 2px; text-transform: uppercase; margin-top: 5px; }
+        :root { --charcoal: #2F3437; --sage: #87A96B; --red: #ff4d4d; --white: #ffffff; }
+        body { background: var(--charcoal); color: white; font-family: sans-serif; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        header { text-align: center; margin-bottom: 20px; }
         
-        .grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            width: 100%;
-            max-width: 400px;
-            margin-bottom: 20px;
+        /* The Dispatcher Overlay */
+        #dispatcher {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 100; flex-direction: column; justify-content: center; align-items: center;
         }
-        .card {
-            background: var(--glass);
-            border: 1px solid rgba(135, 169, 107, 0.2);
-            border-radius: 12px;
-            padding: 15px 10px;
-            text-align: center;
-            font-size: 10px;
-            font-weight: bold;
-            color: var(--sage);
-        }
-        
-        #task-list {
-            width: 100%;
-            max-width: 400px;
-            margin-bottom: 120px; 
-        }
-        .task-item {
-            background: #3f4447;
-            padding: 16px;
-            border-radius: 15px;
-            margin-bottom: 12px;
-            border-left: 6px solid var(--red);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        }
-        .task-item.done { border-left-color: var(--sage); opacity: 0.4; }
+        .dispatch-card { background: #3f4447; padding: 20px; border-radius: 20px; width: 80%; text-align: center; border: 2px solid var(--sage); }
+        .assign-btn { background: var(--sage); color: white; border: none; padding: 15px; margin: 10px; border-radius: 10px; width: 80%; font-weight: bold; }
+        .vault-btn { background: #555; border: 1px solid var(--red); color: white; padding: 15px; margin: 10px; border-radius: 10px; width: 80%; }
 
-        .mic-container {
-            position: fixed;
-            bottom: 30px;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .mic-btn {
-            background-color: var(--sage);
-            border: none;
-            border-radius: 50%;
-            width: 85px;
-            height: 85px;
-            cursor: pointer;
-            box-shadow: 0 0 30px rgba(135, 169, 107, 0.4);
-            font-size: 38px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        #status { font-size: 13px; margin-top: 15px; color: var(--sage); font-weight: bold; height: 20px; }
+        #task-list { width: 100%; max-width: 400px; margin-top: 20px; padding-bottom: 100px; }
+        .task-item { background: #3f4447; padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 6px solid var(--red); display: flex; justify-content: space-between; align-items: center; }
+        .task-item.vault { border-left-color: #ffaa00; background: #2a2d2f; }
+        .mic-btn { position: fixed; bottom: 30px; background: var(--sage); border: none; border-radius: 50%; width: 80px; height: 80px; font-size: 35px; box-shadow: 0 0 20px rgba(135,169,107,0.5); cursor: pointer; }
     </style>
 </head>
 <body>
 
 <header>
-    <div class="mascot">🦉</div>
-    <h1>NORMAN</h1>
-    <div class="tagline">Operational Neurodiversity</div>
+    <h1 style="color:var(--sage); letter-spacing:3px;">🦉 NORMAN</h1>
+    <p style="font-size:10px; opacity:0.6;">DISPATCH ENGINE v1.2</p>
 </header>
 
-<div class="grid">
-    <div class="card">ARRIVAL</div>
-    <div class="card">TECHNICAL</div>
-    <div class="card">MAINTENANCE</div>
-    <div class="card">SUPPLY</div>
+<div id="dispatcher">
+    <div class="dispatch-card">
+        <p id="captured-text" style="font-style: italic; color: var(--sage);"></p>
+        <h3>Assign to:</h3>
+        <button class="assign-btn" onclick="finalizeTask('Bar Team')">BAR TEAM</button>
+        <button class="assign-btn" onclick="finalizeTask('Kitchen')">KITCHEN</button>
+        <button class="assign-btn" onclick="finalizeTask('Floor Team')">FLOOR TEAM</button>
+        <button class="vault-btn" onclick="finalizeTask('Private Vault', true)">🔒 PRIVATE VAULT</button>
+        <button style="background:none; color:white; border:none; margin-top:10px;" onclick="closeDispatcher()">Cancel</button>
+    </div>
 </div>
 
 <div id="task-list"></div>
 
-<div class="mic-container">
-    <button class="mic-btn" onclick="startVoice()">🎙️</button>
-    <div id="status"></div>
-</div>
+<button class="mic-btn" onclick="startVoice()">🎙️</button>
 
 <script>
-    // CONNECTION TO YOUR SUPABASE
-    const supabaseUrl = 'https://wodvuhuekebtgeagcxff.supabase.co';
-    const supabaseKey = 'sb_publishable_u5loOdmFIhABc535x5At8g_PVfrVeRH';
-    const _supabase = supabase.createClient(supabaseUrl, supabaseKey);
+    const _s = supabase.createClient('https://wodvuhuekebtgeagcxff.supabase.co', 'sb_publishable_u5loOdmFIhABc535x5At8g_PVfrVeRH');
+    let currentText = "";
 
-    async function fetchTasks() {
-        const { data } = await _supabase.from('tasks').select('*').order('created_at', { ascending: false });
-        if (data) {
-            const list = document.getElementById('task-list');
-            list.innerHTML = data.map(t => `
-                <div class="task-item ${t.status === 'green' ? 'done' : ''}">
+    async function load() {
+        const { data } = await _s.from('tasks').select('*').order('created_at', {ascending: false});
+        if(data) {
+            document.getElementById('task-list').innerHTML = data.map(t => `
+                <div class="task-item ${t.is_private ? 'vault' : ''}">
                     <div>
-                        <div style="font-weight:bold; font-size:16px; margin-bottom:4px;">${t.task_name}</div>
-                        <div style="font-size:10px; color:var(--sage); letter-spacing:1px;">${t.department.toUpperCase()}</div>
+                        <b style="font-size:16px;">${t.is_private ? '🔒 ' : ''}${t.task_name}</b><br>
+                        <small style="color:var(--sage)">${t.assigned_to || t.department}</small>
                     </div>
-                    ${t.status !== 'green' ? `<button onclick="markDone('${t.id}')" style="background:var(--sage); border:none; color:white; padding:10px 14px; border-radius:8px; font-weight:bold;">DONE</button>` : '✅'}
+                    <button onclick="markDone('${t.id}')" style="background:none; border:1px solid var(--sage); color:white; border-radius:5px; padding:5px 10px;">WIN</button>
                 </div>
             `).join('');
         }
     }
 
-    async function markDone(id) {
-        await _supabase.from('tasks').update({ status: 'green' }).eq('id', id);
-        fetchTasks();
-    }
-
     function startVoice() {
-        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-        recognition.lang = 'en-GB';
-        document.getElementById('status').innerText = "NORMAN IS LISTENING...";
-
-        recognition.onresult = async (event) => {
-            const text = event.results[0][0].transcript;
-            document.getElementById('status').innerText = "DISPATCHING...";
-            
-            // SMART DISPATCHER LOGIC
-            let dept = "General";
-            const lowerText = text.toLowerCase();
-            if(lowerText.includes("bar") || lowerText.includes("drink")) dept = "Technical Standards";
-            if(lowerText.includes("kitchen") || lowerText.includes("food")) dept = "Kitchen";
-            if(lowerText.includes("fix") || lowerText.includes("repair") || lowerText.includes("broken")) dept = "Maintenance";
-            if(lowerText.includes("carpark") || lowerText.includes("front")) dept = "Arrival Experience";
-
-            await _supabase.from('tasks').insert([{ task_name: text, department: dept, status: 'red' }]);
-            fetchTasks();
-            document.getElementById('status').innerText = "TASK LOGGED.";
-            setTimeout(() => { document.getElementById('status').innerText = ""; }, 2500);
+        const rec = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        rec.lang = 'en-GB';
+        rec.onresult = (e) => {
+            currentText = e.results[0][0].transcript;
+            document.getElementById('captured-text').innerText = `"${currentText}"`;
+            document.getElementById('dispatcher').style.display = 'flex';
         };
-        recognition.start();
+        rec.start();
     }
-    fetchTasks();
+
+    async function finalizeTask(assignee, isPrivate = false) {
+        await _s.from('tasks').insert([{ 
+            task_name: currentText, 
+            assigned_to: assignee, 
+            department: assignee,
+            is_private: isPrivate,
+            status: 'red' 
+        }]);
+        closeDispatcher();
+        load();
+    }
+
+    function closeDispatcher() { document.getElementById('dispatcher').style.display = 'none'; }
+    async function markDone(id) { await _s.from('tasks').delete().eq('id', id); load(); }
+    load();
 </script>
 </body>
 </html>
