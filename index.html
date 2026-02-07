@@ -3,95 +3,115 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NORMAN | Smart Dispatcher</title>
+    <title>NORMAN | Unit Hub</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { --charcoal: #2F3437; --sage: #87A96B; --red: #ff4d4d; --white: #ffffff; }
-        body { background: var(--charcoal); color: white; font-family: sans-serif; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        header { text-align: center; margin-bottom: 20px; }
+        :root { --charcoal: #2F3437; --sage: #87A96B; --red: #ff4d4d; --gold: #D4AF37; --white: #ffffff; --blue: #5ba4e1; }
+        body { background: var(--charcoal); color: white; font-family: sans-serif; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
         
-        /* The Dispatcher Overlay */
+        /* Filter Bar */
+        .filter-nav { 
+            width: 100%; background: #1a1a1a; padding: 10px 0; position: sticky; top: 0; z-index: 80;
+            display: flex; overflow-x: auto; white-space: nowrap; border-bottom: 1px solid #333;
+        }
+        .filter-btn { 
+            background: none; border: 1px solid #444; color: #888; padding: 6px 15px; 
+            margin: 0 5px; border-radius: 20px; font-size: 12px; cursor: pointer;
+        }
+        .filter-btn.active { background: var(--sage); color: white; border-color: var(--sage); }
+
+        /* Dispatcher */
         #dispatcher {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9); z-index: 100; flex-direction: column; justify-content: center; align-items: center;
+            background: rgba(0,0,0,0.95); z-index: 100; flex-direction: column; justify-content: center; align-items: center; overflow-y: auto;
         }
-        .dispatch-card { background: #3f4447; padding: 20px; border-radius: 20px; width: 80%; text-align: center; border: 2px solid var(--sage); }
-        .assign-btn { background: var(--sage); color: white; border: none; padding: 15px; margin: 10px; border-radius: 10px; width: 80%; font-weight: bold; }
-        .vault-btn { background: #555; border: 1px solid var(--red); color: white; padding: 15px; margin: 10px; border-radius: 10px; width: 80%; }
-
-        #task-list { width: 100%; max-width: 400px; margin-top: 20px; padding-bottom: 100px; }
-        .task-item { background: #3f4447; padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 6px solid var(--red); display: flex; justify-content: space-between; align-items: center; }
-        .task-item.vault { border-left-color: #ffaa00; background: #2a2d2f; }
-        .mic-btn { position: fixed; bottom: 30px; background: var(--sage); border: none; border-radius: 50%; width: 80px; height: 80px; font-size: 35px; box-shadow: 0 0 20px rgba(135,169,107,0.5); cursor: pointer; }
+        .dispatch-card { background: #3f4447; padding: 20px; border-radius: 20px; width: 85%; text-align: center; }
+        .btn { border: none; padding: 12px; margin: 4px; border-radius: 8px; width: 100%; font-weight: bold; cursor: pointer; }
+        
+        #task-list { width: 90%; max-width: 400px; margin-top: 20px; padding-bottom: 120px; }
+        .task-item { background: #3f4447; padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 6px solid var(--sage); display: flex; justify-content: space-between; align-items: center; }
+        .task-item.mine { border-left-color: var(--red); }
+        .task-item.mgmt { border-left-color: var(--gold); }
+        .task-item.kitchen { border-left-color: var(--blue); }
+        
+        .mic-btn { position: fixed; bottom: 30px; background: var(--sage); border: none; border-radius: 50%; width: 75px; height: 75px; font-size: 30px; box-shadow: 0 0 20px rgba(0,0,0,0.5); z-index: 50; }
     </style>
 </head>
 <body>
 
-<header>
-    <h1 style="color:var(--sage); letter-spacing:3px;">🦉 NORMAN</h1>
-    <p style="font-size:10px; opacity:0.6;">DISPATCH ENGINE v1.2</p>
-</header>
+<nav class="filter-nav" id="filter-bar">
+    <button class="filter-btn active" onclick="setFilter('all', this)">ALL</button>
+    <button class="filter-btn" onclick="setFilter('mine', this)">MY LIST</button>
+    <button class="filter-btn" onclick="setFilter('mgmt', this)">MGMT</button>
+    <button class="filter-btn" onclick="setFilter('foh', this)">BAR/FLOOR</button>
+    <button class="filter-btn" onclick="setFilter('kitchen', this)">KITCHEN</button>
+</nav>
 
 <div id="dispatcher">
     <div class="dispatch-card">
-        <p id="captured-text" style="font-style: italic; color: var(--sage);"></p>
-        <h3>Assign to:</h3>
-        <button class="assign-btn" onclick="finalizeTask('Bar Team')">BAR TEAM</button>
-        <button class="assign-btn" onclick="finalizeTask('Kitchen')">KITCHEN</button>
-        <button class="assign-btn" onclick="finalizeTask('Floor Team')">FLOOR TEAM</button>
-        <button class="vault-btn" onclick="finalizeTask('Private Vault', true)">🔒 PRIVATE VAULT</button>
-        <button style="background:none; color:white; border:none; margin-top:10px;" onclick="closeDispatcher()">Cancel</button>
+        <p id="captured-text" style="color: var(--sage); margin-bottom: 15px;"></p>
+        <button class="btn" style="background:#1a1a1a; color:white; border:1px solid var(--red);" onclick="finalize('My List', 'mine')">🔒 MY LIST</button>
+        <button class="btn" style="background:var(--gold);" onclick="finalize('Management', 'mgmt')">⭐ MGMT TEAM</button>
+        <button class="btn" style="background:var(--sage); color:white;" onclick="finalize('Bar Team', 'foh')">BAR TEAM</button>
+        <button class="btn" style="background:var(--sage); color:white;" onclick="finalize('Floor Team', 'foh')">FLOOR TEAM</button>
+        <button class="btn" style="background:var(--blue); color:white;" onclick="finalize('Chef Lead', 'kitchen')">CHEF LEADERS</button>
+        <button class="btn" style="background:var(--blue); color:white;" onclick="finalize('Chef Team', 'kitchen')">KITCHEN TEAM</button>
+        <button style="background:none; color:white; border:none; margin-top:15px; opacity:0.5;" onclick="closeDisp()">Cancel</button>
     </div>
 </div>
 
 <div id="task-list"></div>
-
 <button class="mic-btn" onclick="startVoice()">🎙️</button>
 
 <script>
     const _s = supabase.createClient('https://wodvuhuekebtgeagcxff.supabase.co', 'sb_publishable_u5loOdmFIhABc535x5At8g_PVfrVeRH');
-    let currentText = "";
+    let speechBuffer = "";
+    let currentFilter = 'all';
 
     async function load() {
-        const { data } = await _s.from('tasks').select('*').order('created_at', {ascending: false});
+        let query = _s.from('tasks').select('*').order('created_at', {ascending: false});
+        if (currentFilter !== 'all') { query = query.eq('department', currentFilter); }
+        
+        const { data } = await query;
         if(data) {
             document.getElementById('task-list').innerHTML = data.map(t => `
-                <div class="task-item ${t.is_private ? 'vault' : ''}">
+                <div class="task-item ${t.department}">
                     <div>
-                        <b style="font-size:16px;">${t.is_private ? '🔒 ' : ''}${t.task_name}</b><br>
-                        <small style="color:var(--sage)">${t.assigned_to || t.department}</small>
+                        <b style="font-size:15px;">${t.task_name}</b><br>
+                        <small style="opacity:0.7; font-size:9px;">${t.assigned_to.toUpperCase()}</small>
                     </div>
-                    <button onclick="markDone('${t.id}')" style="background:none; border:1px solid var(--sage); color:white; border-radius:5px; padding:5px 10px;">WIN</button>
+                    <button onclick="finish('${t.id}')" style="background:none; border:1px solid #666; color:white; border-radius:6px; padding:8px;">DONE</button>
                 </div>
             `).join('');
         }
+    }
+
+    function setFilter(filter, btn) {
+        currentFilter = filter;
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        load();
     }
 
     function startVoice() {
         const rec = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
         rec.lang = 'en-GB';
         rec.onresult = (e) => {
-            currentText = e.results[0][0].transcript;
-            document.getElementById('captured-text').innerText = `"${currentText}"`;
+            speechBuffer = e.results[0][0].transcript;
+            document.getElementById('captured-text').innerText = `"${speechBuffer}"`;
             document.getElementById('dispatcher').style.display = 'flex';
         };
         rec.start();
     }
 
-    async function finalizeTask(assignee, isPrivate = false) {
-        await _s.from('tasks').insert([{ 
-            task_name: currentText, 
-            assigned_to: assignee, 
-            department: assignee,
-            is_private: isPrivate,
-            status: 'red' 
-        }]);
-        closeDispatcher();
+    async function finalize(label, type) {
+        await _s.from('tasks').insert([{ task_name: speechBuffer, assigned_to: label, department: type }]);
+        closeDisp();
         load();
     }
 
-    function closeDispatcher() { document.getElementById('dispatcher').style.display = 'none'; }
-    async function markDone(id) { await _s.from('tasks').delete().eq('id', id); load(); }
+    function closeDisp() { document.getElementById('dispatcher').style.display = 'none'; }
+    async function finish(id) { await _s.from('tasks').delete().eq('id', id); load(); }
     load();
 </script>
 </body>
