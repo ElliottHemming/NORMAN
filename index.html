@@ -3,54 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NORMAN | Hub</title>
+    <title>NORMAN | v2.0</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --charcoal: #2F3437; --sage: #87A96B; --red: #ff4d4d; --white: #ffffff; }
-        body { background: var(--charcoal); color: white; font-family: sans-serif; margin: 0; padding: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
+        body { background: var(--charcoal); color: white; font-family: sans-serif; margin: 0; padding: 0; min-height: 100vh; overflow-x: hidden; }
         
-        #lobby { position: fixed; inset: 0; background: var(--charcoal); z-index: 500; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
-        .lobby-card { background: #3f4447; padding: 30px; border-radius: 20px; width: 90%; max-width: 400px; text-align: center; border: 1px solid var(--sage); }
-        .role-btn { background: rgba(255,255,255,0.05); border: 1px solid #555; color: white; padding: 18px; margin: 10px 0; border-radius: 12px; width: 100%; font-size: 16px; text-align: left; cursor: pointer; display: block; }
+        /* THE LOBBY: Simple and centered */
+        #lobby { position: fixed; inset: 0; background: var(--charcoal); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .lobby-card { background: #3f4447; padding: 30px; border-radius: 20px; width: 80%; max-width: 350px; text-align: center; border: 1px solid var(--sage); }
+        
+        /* HUGE CLICKABLE BUTTONS */
+        .role-btn { background: var(--sage); color: white; border: none; padding: 20px; margin: 10px 0; border-radius: 12px; width: 100%; font-size: 18px; font-weight: bold; cursor: pointer; display: block; }
+        .gm-btn { background: #444; border: 1px solid var(--red); }
 
-        #main-app { display: none; width: 100%; flex-direction: column; align-items: center; }
-        header { width: 100%; text-align: center; padding: 20px 0; border-bottom: 1px solid #333; }
+        /* THE MAIN APP: Hidden by default */
+        #main-app { display: none; padding: 20px; flex-direction: column; align-items: center; width: 100%; box-sizing: border-box; }
+        header { width: 100%; text-align: center; margin-bottom: 20px; }
         
-        #task-list { width: 90%; max-width: 400px; margin-top: 20px; padding-bottom: 150px; }
-        .task-item { background: #3f4447; padding: 18px; border-radius: 15px; margin-bottom: 12px; border-left: 6px solid var(--sage); display: flex; justify-content: space-between; align-items: center; }
+        .task-item { background: #3f4447; padding: 18px; border-radius: 15px; margin-bottom: 12px; border-left: 6px solid var(--sage); width: 90%; max-width: 400px; display: flex; justify-content: space-between; align-items: center; }
         .task-item.mine { border-left-color: var(--red); }
 
-        #dispatcher { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 600; flex-direction: column; justify-content: center; align-items: center; }
-        .mic-btn { position: fixed; bottom: 30px; background: var(--sage); border: none; border-radius: 50%; width: 80px; height: 80px; font-size: 35px; cursor: pointer; z-index: 100; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
-        .hidden { display: none !important; }
+        /* MIC BUTTON */
+        .mic-btn { position: fixed; bottom: 30px; background: var(--sage); border: none; border-radius: 50%; width: 80px; height: 80px; font-size: 35px; cursor: pointer; z-index: 100; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+        
+        /* DISPATCHER OVERLAY */
+        #dispatcher { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 10000; flex-direction: column; justify-content: center; align-items: center; }
     </style>
 </head>
 <body>
 
 <div id="lobby">
     <div class="lobby-card">
-        <h1 style="color:var(--sage); letter-spacing:4px; margin-bottom:10px;">🦉 NORMAN</h1>
-        <button class="role-btn" onclick="checkAuth()">🔴 GM Command (PIN)</button>
-        <button class="role-btn" onclick="selectRole('foh')">🟢 Bar / Floor Team</button>
-        <button class="role-btn" onclick="selectRole('kitchen')">🔵 Kitchen Team</button>
+        <h1 style="color:var(--sage); letter-spacing:4px;">🦉 NORMAN</h1>
+        <button class="role-btn" onclick="selectRole('foh')">BAR / FLOOR</button>
+        <button class="role-btn" onclick="selectRole('kitchen')">KITCHEN</button>
+        <button class="role-btn gm-btn" onclick="checkAuth()">GM COMMAND</button>
     </div>
 </div>
 
 <div id="main-app">
     <header>
-        <h2 id="view-title" style="margin:0; color:var(--sage); letter-spacing:2px; font-size: 18px;"></h2>
-        <button style="background:none; border:none; color:#888; text-decoration:underline; font-size:11px; cursor:pointer;" onclick="location.reload()">Switch Role</button>
+        <h2 id="view-title" style="margin:0; color:var(--sage);"></h2>
+        <button onclick="location.reload()" style="background:none; border:none; color:#888; text-decoration:underline; padding:10px; cursor:pointer;">Logout</button>
     </header>
     <div id="task-list"></div>
     <button class="mic-btn" onclick="startVoice()">🎙️</button>
 </div>
 
 <div id="dispatcher">
-    <div style="background: #3f4447; padding: 25px; border-radius: 20px; width: 85%; text-align: center; border: 1px solid var(--sage);">
-        <p id="captured-text" style="color: var(--sage); font-style: italic; margin-bottom: 20px;"></p>
-        <button id="dispatch-mine" class="role-btn" style="border-color: var(--red);" onclick="finalize('My List', 'mine')">🔒 My List</button>
-        <button class="role-btn" style="border-color: var(--sage);" onclick="finalize('Team', 'foh')">👥 Team Dispatch</button>
-        <button style="background:none; color:white; border:none; margin-top:20px; opacity:0.5;" onclick="closeDisp()">Cancel</button>
+    <div style="background: #3f4447; padding: 25px; border-radius: 20px; width: 80%; text-align: center;">
+        <p id="captured-text" style="color:var(--sage); font-style:italic; margin-bottom:20px;"></p>
+        <button class="role-btn" onclick="finalize('Team', 'foh')">TEAM</button>
+        <button id="dispatch-mine" class="role-btn gm-btn" onclick="finalize('My List', 'mine')">MY LIST</button>
+        <button onclick="closeDisp()" style="background:none; border:none; color:white; margin-top:15px; opacity:0.5;">Cancel</button>
     </div>
 </div>
 
@@ -66,10 +72,13 @@
 
     function selectRole(role) {
         userRole = role;
-        document.getElementById('lobby').classList.add('hidden');
+        // NUCLEAR OPTION: Physically remove the lobby from the DOM
+        const lobby = document.getElementById('lobby');
+        if (lobby) lobby.remove(); 
+        
         document.getElementById('main-app').style.display = 'flex';
-        document.getElementById('view-title').innerText = role === 'mine' ? "GM COMMAND" : role.toUpperCase();
-        if (role !== 'mine') document.getElementById('dispatch-mine').classList.add('hidden');
+        document.getElementById('view-title').innerText = role.toUpperCase();
+        if (role !== 'mine') document.getElementById('dispatch-mine').style.display = 'none';
         load();
     }
 
@@ -80,4 +89,33 @@
         if(data) {
             document.getElementById('task-list').innerHTML = data.map(t => `
                 <div class="task-item ${t.department === 'mine' ? 'mine' : ''}">
-                    <b>
+                    <b>${t.task_name}</b>
+                    <button onclick="finish('${t.id}')" style="background:none; border:1px solid #666; color:white; padding:8px; border-radius:8px; cursor:pointer;">WIN</button>
+                </div>
+            `).join('');
+        }
+    }
+
+    function startVoice() {
+        const rec = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        rec.lang = 'en-GB';
+        rec.onresult = (e) => {
+            speechBuffer = e.results[0][0].transcript;
+            document.getElementById('captured-text').innerText = `"${speechBuffer}"`;
+            document.getElementById('dispatcher').style.display = 'flex';
+        };
+        rec.start();
+    }
+
+    async function finalize(label, type) {
+        await _s.from('tasks').insert([{ task_name: speechBuffer, assigned_to: label, department: type }]);
+        closeDisp();
+        load();
+    }
+
+    function closeDisp() { document.getElementById('dispatcher').style.display = 'none'; }
+    async function finish(id) { await _s.from('tasks').delete().eq('id', id); load(); }
+    load();
+</script>
+</body>
+</html>
