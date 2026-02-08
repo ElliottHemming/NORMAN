@@ -3,28 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NORMAN | Secure</title>
+    <title>NORMAN | Fixed</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { --charcoal: #2F3437; --sage: #87A96B; --red: #ff4d4d; --gold: #D4AF37; --white: #ffffff; }
-        body { background: var(--charcoal); color: white; font-family: sans-serif; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        :root { --charcoal: #2F3437; --sage: #87A96B; --red: #ff4d4d; --white: #ffffff; }
+        body { background: var(--charcoal); color: white; font-family: sans-serif; margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; }
         
-        #lobby { position: fixed; inset: 0; background: var(--charcoal); z-index: 200; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
-        .lobby-card { background: #3f4447; padding: 30px; border-radius: 20px; width: 90%; max-width: 400px; text-align: center; border: 1px solid var(--sage); }
-        .role-btn { background: rgba(255,255,255,0.05); border: 1px solid #555; color: white; padding: 15px; margin: 8px 0; border-radius: 12px; width: 100%; font-size: 16px; text-align: left; cursor: pointer; }
+        #lobby { position: fixed; inset: 0; background: var(--charcoal); z-index: 999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .lobby-card { background: #3f4447; padding: 30px; border-radius: 20px; width: 85%; max-width: 350px; text-align: center; border: 1px solid var(--sage); }
         
-        #main-app { display: none; width: 100%; flex-direction: column; align-items: center; }
-        header { width: 100%; text-align: center; padding: 20px 0; border-bottom: 1px solid #333; }
-        
-        #task-list { width: 90%; max-width: 400px; margin-top: 20px; padding-bottom: 120px; }
-        .task-item { background: #3f4447; padding: 18px; border-radius: 15px; margin-bottom: 12px; border-left: 6px solid var(--sage); }
-        .task-item.mine { border-left-color: var(--red); }
-        .sub-steps { margin-top: 12px; padding-top: 10px; border-top: 1px solid #555; font-size: 13px; color: #aaa; }
-        
-        #dispatcher { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 100; flex-direction: column; justify-content: center; align-items: center; }
-        .mic-btn { position: fixed; bottom: 30px; background: var(--sage); border: none; border-radius: 50%; width: 80px; height: 80px; font-size: 35px; cursor: pointer; z-index: 50; }
-        .logout-link { display: inline-block; margin-top: 10px; color: #888; text-decoration: underline; font-size: 11px; background: none; border: none; cursor: pointer; }
+        .role-btn { background: var(--sage); color: white; border: none; padding: 20px; margin: 10px 0; border-radius: 12px; width: 100%; font-size: 18px; font-weight: bold; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+        .role-btn:active { background: #6b8e55; transform: scale(0.98); }
+
+        #main-app { display: none; padding: 20px; text-align: center; }
         .hidden { display: none !important; }
+        #debug { position: fixed; bottom: 5px; font-size: 10px; opacity: 0.3; }
     </style>
 </head>
 <body>
@@ -32,21 +25,35 @@
 <div id="lobby">
     <div class="lobby-card">
         <h1 style="color:var(--sage); letter-spacing:4px;">🦉 NORMAN</h1>
-        <button class="role-btn" onclick="checkAuth('mine')">🔴 GM Command (PIN Required)</button>
-        <button class="role-btn" onclick="selectRole('foh')">🟢 Bar / Floor Team</button>
-        <button class="role-btn" onclick="selectRole('kitchen')">🔵 Kitchen Team</button>
+        <button class="role-btn" onclick="selectRole('foh')">BAR / FLOOR</button>
+        <button class="role-btn" onclick="selectRole('kitchen')">KITCHEN</button>
+        <button class="role-btn" style="background:#444;" onclick="checkAuth()">GM COMMAND</button>
     </div>
 </div>
 
 <div id="main-app">
-    <header>
-        <h2 id="view-title" style="margin:0; color:var(--sage); letter-spacing:2px; font-size: 18px;"></h2>
-        <button class="logout-link" onclick="logout()">LOG OUT / SWITCH ROLE</button>
-    </header>
-    <div id="task-list"></div>
-    <button class="mic-btn" onclick="startVoice()">🎙️</button>
+    <h2 id="view-title"></h2>
+    <button onclick="location.reload()" style="color: #888; background:none; border:none; text-decoration:underline;">Log Out</button>
+    <div id="task-list" style="margin-top:20px;"></div>
 </div>
 
-<div id="dispatcher">
-    <div style="background: #3f4447; padding: 25px; border-radius: 20px; width: 85%; text-align: center; border: 1px solid var(--sage);">
-        <p id="captured-text
+<div id="debug">System Ready</div>
+
+<script>
+    // Supabase check
+    const _s = supabase.createClient('https://wodvuhuekebtgeagcxff.supabase.co', 'sb_publishable_u5loOdmFIhABc535x5At8g_PVfrVeRH');
+    
+    function selectRole(role) {
+        console.log("Role selected:", role);
+        document.getElementById('lobby').classList.add('hidden');
+        document.getElementById('main-app').style.display = 'block';
+        document.getElementById('view-title').innerText = role.toUpperCase();
+    }
+
+    function checkAuth() {
+        const pin = prompt("Enter PIN (1234):");
+        if (pin === "1234") { selectRole('mine'); }
+    }
+</script>
+</body>
+</html>
