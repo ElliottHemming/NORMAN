@@ -3,23 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NORMAN | Neuro-Assist</title>
+    <title>NORMAN | Secure</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --charcoal: #2F3437; --sage: #87A96B; --red: #ff4d4d; --gold: #D4AF37; --white: #ffffff; }
-        body { background: var(--charcoal); color: white; font-family: sans-serif; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        body { background: var(--charcoal); color: white; font-family: sans-serif; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
         
+        #lobby { position: fixed; inset: 0; background: var(--charcoal); z-index: 200; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
         .lobby-card { background: #3f4447; padding: 30px; border-radius: 20px; width: 90%; max-width: 400px; text-align: center; border: 1px solid var(--sage); }
         .role-btn { background: rgba(255,255,255,0.05); border: 1px solid #555; color: white; padding: 15px; margin: 8px 0; border-radius: 12px; width: 100%; font-size: 16px; text-align: left; cursor: pointer; }
         
-        #task-list { width: 100%; max-width: 400px; margin-top: 20px; }
-        .task-item { background: #3f4447; padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 6px solid var(--sage); }
-        .sub-steps { margin-top: 10px; padding-left: 10px; border-top: 1px solid #555; padding-top: 10px; font-size: 12px; color: #bbb; }
-        .sub-step { margin-bottom: 5px; display: flex; align-items: center; }
+        #main-app { display: none; width: 100%; flex-direction: column; align-items: center; }
+        header { width: 100%; text-align: center; padding: 20px 0; border-bottom: 1px solid #333; }
+        
+        #task-list { width: 90%; max-width: 400px; margin-top: 20px; padding-bottom: 120px; }
+        .task-item { background: #3f4447; padding: 18px; border-radius: 15px; margin-bottom: 12px; border-left: 6px solid var(--sage); }
+        .task-item.mine { border-left-color: var(--red); }
+        .sub-steps { margin-top: 12px; padding-top: 10px; border-top: 1px solid #555; font-size: 13px; color: #aaa; }
         
         #dispatcher { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 100; flex-direction: column; justify-content: center; align-items: center; }
-        .mic-btn { position: fixed; bottom: 30px; background: var(--sage); border: none; border-radius: 50%; width: 80px; height: 80px; font-size: 35px; cursor: pointer; }
-        .hidden { display: none; }
+        .mic-btn { position: fixed; bottom: 30px; background: var(--sage); border: none; border-radius: 50%; width: 80px; height: 80px; font-size: 35px; cursor: pointer; z-index: 50; }
+        .logout-link { display: inline-block; margin-top: 10px; color: #888; text-decoration: underline; font-size: 11px; background: none; border: none; cursor: pointer; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
@@ -27,87 +32,21 @@
 <div id="lobby">
     <div class="lobby-card">
         <h1 style="color:var(--sage); letter-spacing:4px;">🦉 NORMAN</h1>
-        <button class="role-btn" onclick="selectRole('mine')">🔴 GM Control</button>
-        <button class="role-btn" onclick="selectRole('foh')">🟢 Front of House</button>
+        <button class="role-btn" onclick="checkAuth('mine')">🔴 GM Command (PIN Required)</button>
+        <button class="role-btn" onclick="selectRole('foh')">🟢 Bar / Floor Team</button>
+        <button class="role-btn" onclick="selectRole('kitchen')">🔵 Kitchen Team</button>
     </div>
 </div>
 
-<div id="main-app" class="hidden">
-    <h2 id="view-title" style="color:var(--sage);"></h2>
+<div id="main-app">
+    <header>
+        <h2 id="view-title" style="margin:0; color:var(--sage); letter-spacing:2px; font-size: 18px;"></h2>
+        <button class="logout-link" onclick="logout()">LOG OUT / SWITCH ROLE</button>
+    </header>
     <div id="task-list"></div>
     <button class="mic-btn" onclick="startVoice()">🎙️</button>
 </div>
 
 <div id="dispatcher">
-    <div style="background: #3f4447; padding: 25px; border-radius: 20px; width: 85%; text-align: center;">
-        <p id="captured-text" style="color: var(--sage); font-style: italic;"></p>
-        <button class="role-btn" style="border-color: var(--red);" onclick="finalize('mine')">🔒 My List</button>
-        <button class="role-btn" style="border-color: var(--sage);" onclick="finalize('foh')">👥 Team Task</button>
-        <button style="background:none; color:white; border:none; margin-top:15px; opacity:0.5;" onclick="closeDisp()">Cancel</button>
-    </div>
-</div>
-
-<script>
-    const _s = supabase.createClient('https://wodvuhuekebtgeagcxff.supabase.co', 'sb_publishable_u5loOdmFIhABc535x5At8g_PVfrVeRH');
-    let speechBuffer = "";
-    let userRole = "";
-
-    // Executive Function Templates
-    const templates = {
-        "carpark": ["Grab keys & bin bags", "Check smoking area", "Litter pick front perimeter", "Return keys"],
-        "delivery": ["Check invoice vs items", "Temp probe chilled goods", "Rotate stock (FIFO)", "Sign & file paperwork"],
-        "cellar": ["Check gas levels", "Clean line ends", "Empty drip trays", "Update waste log"]
-    };
-
-    function selectRole(role) {
-        userRole = role;
-        document.getElementById('lobby').classList.add('hidden');
-        document.getElementById('main-app').classList.remove('hidden');
-        document.getElementById('view-title').innerText = role.toUpperCase();
-        load();
-    }
-
-    async function load() {
-        let query = _s.from('tasks').select('*').order('created_at', {ascending: false});
-        if (userRole !== 'mine') query = query.eq('department', userRole);
-        const { data } = await query;
-        if(data) {
-            document.getElementById('task-list').innerHTML = data.map(t => {
-                // Check if any keyword matches a template
-                const match = Object.keys(templates).find(k => t.task_name.toLowerCase().includes(k));
-                const steps = match ? `<div class="sub-steps">${templates[match].map(s => `<div class="sub-step">☐ ${s}</div>`).join('')}</div>` : '';
-                
-                return `
-                    <div class="task-item">
-                        <div style="display:flex; justify-content:space-between;">
-                            <b>${t.task_name}</b>
-                            <button onclick="finish('${t.id}')" style="background:none; border:1px solid #666; color:white; border-radius:4px; font-size:10px;">WIN</button>
-                        </div>
-                        ${steps}
-                    </div>
-                `;
-            }).join('');
-        }
-    }
-
-    function startVoice() {
-        const rec = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-        rec.onresult = (e) => {
-            speechBuffer = e.results[0][0].transcript;
-            document.getElementById('captured-text').innerText = `"${speechBuffer}"`;
-            document.getElementById('dispatcher').style.display = 'flex';
-        };
-        rec.start();
-    }
-
-    async function finalize(type) {
-        await _s.from('tasks').insert([{ task_name: speechBuffer, department: type, assigned_to: type }]);
-        closeDisp(); load();
-    }
-
-    function closeDisp() { document.getElementById('dispatcher').style.display = 'none'; }
-    async function finish(id) { await _s.from('tasks').delete().eq('id', id); load(); }
-    load();
-</script>
-</body>
-</html>
+    <div style="background: #3f4447; padding: 25px; border-radius: 20px; width: 85%; text-align: center; border: 1px solid var(--sage);">
+        <p id="captured-text
