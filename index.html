@@ -3,86 +3,100 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NORMAN | Strategic Ops</title>
+    <title>NORMAN | Premium Ops</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { 
-            --bg: #121416; --card: #1C1F22; --sage: #87A96B; 
-            --red: #FF4D4D; --gold: #D4AF37; --text: #E0E0E0; --dim: #666; 
+            --bg: radial-gradient(circle at top, #1a1c1e, #0d0e10);
+            --glass: rgba(255, 255, 255, 0.03);
+            --border: rgba(255, 255, 255, 0.08);
+            --sage: #a3cfbb; --gold: #e9c46a; --red: #e76f51; --text: #f8f9fa;
         }
         body { 
-            background: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, sans-serif; 
-            margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh;
+            background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            margin: 0; padding: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center;
         }
         
+        /* SLEEK LOBBY */
         #lobby { position: fixed; inset: 0; background: var(--bg); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .glass-card { 
-            background: var(--card); padding: 40px; border-radius: 28px; width: 85%; max-width: 400px; 
-            text-align: center; border: 1px solid rgba(135, 169, 107, 0.2); box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-        }
-        .btn-prime { 
-            background: rgba(255,255,255,0.03); border: 1px solid #333; color: white; padding: 20px; 
-            margin: 12px 0; border-radius: 16px; width: 100%; font-size: 16px; text-align: left; cursor: pointer;
-            transition: all 0.2s; display: flex; justify-content: space-between; align-items: center;
-        }
-        .btn-prime:active { background: var(--sage); color: var(--bg); }
-
-        header { width: 100%; padding: 20px; box-sizing: border-box; display: flex; justify-content: space-between; align-items: center; }
-        .mode-indicator { font-size: 10px; letter-spacing: 2px; color: var(--sage); font-weight: bold; text-transform: uppercase; }
+        .hero-title { font-size: 32px; letter-spacing: 8px; font-weight: 200; color: var(--sage); margin-bottom: 40px; text-shadow: 0 0 20px rgba(163, 207, 187, 0.3); }
         
-        #task-list { width: 92%; max-width: 450px; margin-top: 10px; padding-bottom: 120px; }
+        .role-card { 
+            background: var(--glass); backdrop-filter: blur(10px); border: 1px solid var(--border);
+            padding: 24px; border-radius: 24px; width: 80%; max-width: 350px; margin-bottom: 16px;
+            display: flex; justify-content: space-between; align-items: center; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .role-card:active { transform: scale(0.96); background: rgba(255,255,255,0.08); }
+
+        /* DASHBOARD */
+        #main-app { width: 100%; max-width: 500px; padding: 20px; box-sizing: border-box; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .chip { background: var(--glass); padding: 6px 14px; border-radius: 100px; font-size: 10px; letter-spacing: 1px; border: 1px solid var(--border); color: var(--sage); }
+
         .task-card { 
-            background: var(--card); padding: 20px; border-radius: 20px; margin-bottom: 16px; 
-            border-left: 4px solid var(--sage); position: relative;
+            background: var(--glass); backdrop-filter: blur(10px); border: 1px solid var(--border);
+            border-left: 3px solid var(--sage); padding: 20px; border-radius: 20px; margin-bottom: 16px;
+            animation: slideUp 0.4s ease-out;
         }
-        .task-card.ghost { border-left-color: var(--dim); opacity: 0.6; } 
         .task-card.ops-task { border-left-color: var(--gold); }
+        .task-card.ghost { opacity: 0.4; filter: grayscale(1); }
 
-        .task-header { font-weight: 600; font-size: 17px; margin-bottom: 4px; }
-        .task-meta { font-size: 11px; color: var(--dim); text-transform: uppercase; }
+        .task-title { font-size: 18px; font-weight: 400; margin-bottom: 4px; }
+        .task-sub { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
 
-        .win-btn { 
-            background: var(--sage); color: var(--bg); border: none; padding: 10px 20px; 
-            border-radius: 12px; font-weight: bold; font-size: 12px; cursor: pointer;
+        /* BUTTONS */
+        .win-btn { background: var(--sage); color: #121416; border: none; padding: 8px 18px; border-radius: 10px; font-weight: 600; font-size: 12px; }
+        .mic-trigger { 
+            position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
+            width: 80px; height: 80px; border-radius: 50%; background: var(--sage);
+            border: 8px solid rgba(163, 207, 187, 0.1); font-size: 30px; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4); z-index: 100; transition: 0.3s;
         }
-        .mic-btn { 
-            position: fixed; bottom: 40px; background: var(--sage); border: none; 
-            border-radius: 50%; width: 75px; height: 75px; font-size: 32px; 
-            box-shadow: 0 10px 30px rgba(135, 169, 107, 0.4); z-index: 100;
-        }
+        .mic-trigger.recording { background: var(--red); box-shadow: 0 0 30px var(--red); transform: translateX(-50%) scale(1.1); }
 
-        #dispatcher { 
-            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); 
-            z-index: 2000; flex-direction: column; justify-content: center; align-items: center; padding: 20px;
-        }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .hidden { display: none !important; }
+
+        /* OVERLAYS */
+        #dispatcher { 
+            position: fixed; inset: 0; background: rgba(13,14,16,0.95); z-index: 2000;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;
+        }
     </style>
 </head>
 <body>
 
 <div id="lobby">
-    <div class="glass-card">
-        <h1 style="color:var(--sage); letter-spacing:6px; margin-bottom:40px;">NORMAN</h1>
-        <button class="btn-prime" onclick="checkAuth('ops')">💎 OPS AUDIT <span>→</span></button>
-        <button class="btn-prime" onclick="checkAuth('mine')">🔴 GM CONTROL <span>→</span></button>
-        <button class="btn-prime" onclick="selectRole('team')">👥 TEAM FEED <span>→</span></button>
+    <div class="hero-title">NORMAN</div>
+    <div class="role-card" onclick="checkAuth('ops')">
+        <div><div style="font-size:11px; color:var(--gold)">STRATEGIC</div><div style="font-size:18px">Ops Audit</div></div>
+        <span style="opacity:0.5">→</span>
+    </div>
+    <div class="role-card" onclick="checkAuth('mine')">
+        <div><div style="font-size:11px; color:var(--red)">MANAGEMENT</div><div style="font-size:18px">GM Control</div></div>
+        <span style="opacity:0.5">→</span>
+    </div>
+    <div class="role-card" onclick="selectRole('team')">
+        <div><div style="font-size:11px; color:var(--sage)">EXECUTION</div><div style="font-size:18px">Team Feed</div></div>
+        <span style="opacity:0.5">→</span>
     </div>
 </div>
 
 <div id="main-app" class="hidden">
-    <header>
-        <div class="mode-indicator" id="role-tag">Shift Mode</div>
-        <div onclick="location.reload()" style="font-size:10px; color:var(--dim);">LOGOUT</div>
-    </header>
+    <div class="header">
+        <div class="chip" id="role-display">LOADING...</div>
+        <div onclick="location.reload()" style="font-size:11px; opacity:0.5">LOGOUT</div>
+    </div>
     <div id="task-list"></div>
-    <button class="mic-btn" id="mic" onclick="startVoice()">🎙️</button>
+    <div id="mic-btn" class="mic-trigger" onclick="startVoice()">🎙️</div>
 </div>
 
-<div id="dispatcher">
-    <div class="glass-card" style="border: 1px solid var(--sage);">
-        <p id="captured-text" style="color: var(--sage); font-style: italic; font-size: 20px; margin-bottom:30px;"></p>
-        <div id="destinations"></div>
-        <button onclick="closeDisp()" style="margin-top:20px; background:none; border:none; color:var(--dim);">Cancel</button>
+<div id="dispatcher" class="hidden">
+    <div style="text-align:center; width: 90%;">
+        <p style="font-size:11px; color:var(--sage); letter-spacing:2px;">CAPTURED THOUGHT</p>
+        <h2 id="speech-preview" style="font-weight: 300; margin: 20px 0 40px 0; line-height: 1.4;"></h2>
+        <div id="dispatch-options"></div>
+        <button onclick="closeDisp()" style="margin-top:40px; background:none; border:none; color:#555; font-size:12px; letter-spacing:1px;">CANCEL</button>
     </div>
 </div>
 
@@ -90,19 +104,18 @@
     const _s = supabase.createClient('https://wodvuhuekebtgeagcxff.supabase.co', 'sb_publishable_u5loOdmFIhABc535x5At8g_PVfrVeRH');
     let speechBuffer = "";
     let userRole = "";
-    const MASTER_PIN = "1234";
 
     function checkAuth(role) {
-        const pin = prompt("Secure Access PIN:");
-        if (pin === MASTER_PIN) selectRole(role);
-        else alert("Access Denied.");
+        const pin = prompt("ACCESS PIN:");
+        if (pin === "1234") selectRole(role);
+        else alert("Unauthorized.");
     }
 
     function selectRole(role) {
         userRole = role;
-        document.getElementById('lobby').style.display = 'none';
+        document.getElementById('lobby').classList.add('hidden');
         document.getElementById('main-app').classList.remove('hidden');
-        document.getElementById('role-tag').innerText = role === 'ops' ? 'Ops Audit Mode' : (role === 'mine' ? 'GM Oversight' : 'Team Execution');
+        document.getElementById('role-display').innerText = role.toUpperCase();
         load();
     }
 
@@ -116,10 +129,10 @@
                 const isOps = (t.assigned_to === 'OPS');
                 return `
                     <div class="task-card ${isGhost ? 'ghost' : ''} ${isOps ? 'ops-task' : ''}">
-                        <div style="display:flex; justify-content:space-between; align-items:start;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
                             <div>
-                                <div class="task-meta">${isOps ? '💎 Ops Audit' : t.assigned_to}</div>
-                                <div class="task-header">${t.task_name}</div>
+                                <div class="task-sub">${isOps ? '💎 Ops Audit' : t.assigned_to}</div>
+                                <div class="task-title">${t.task_name}</div>
                             </div>
                             ${!isGhost ? `<button class="win-btn" onclick="finish('${t.id}')">WIN</button>` : ''}
                         </div>
@@ -131,29 +144,25 @@
 
     function startVoice() {
         const rec = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-        rec.onstart = () => { document.getElementById('mic').style.boxShadow = "0 0 40px var(--red)"; };
+        rec.onstart = () => document.getElementById('mic-btn').classList.add('recording');
         rec.onresult = (e) => {
             speechBuffer = e.results[0][0].transcript;
-            document.getElementById('captured-text').innerText = `"${speechBuffer}"`;
+            document.getElementById('speech-preview').innerText = `"${speechBuffer}"`;
             setupDispatch();
-            document.getElementById('dispatcher').style.display = 'flex';
-            document.getElementById('mic').style.boxShadow = "";
+            document.getElementById('dispatcher').classList.remove('hidden');
+            document.getElementById('mic-btn').classList.remove('recording');
         };
         rec.start();
     }
 
     function setupDispatch() {
-        const dest = document.getElementById('destinations');
+        const opt = document.getElementById('dispatch-options');
         if (userRole === 'ops') {
-            dest.innerHTML = `
-                <button class="btn-prime" style="border-color:var(--gold)" onclick="finalize('GM', 'mine')">Assign to GM</button>
-                <button class="btn-prime" style="border-color:var(--sage)" onclick="finalize('TEAM', 'team')">Assign to Team</button>
-            `;
+            opt.innerHTML = `<button class="role-card" onclick="finalize('GM', 'mine')" style="width:100%">Assign to GM Control</button>
+                             <button class="role-card" onclick="finalize('TEAM', 'team')" style="width:100%">Assign to Team Feed</button>`;
         } else {
-            dest.innerHTML = `
-                <button class="btn-prime" style="border-color:var(--red)" onclick="finalize('PERSONAL', 'mine')">Private List</button>
-                <button class="btn-prime" style="border-color:var(--sage)" onclick="finalize('TEAM', 'team')">Team Feed</button>
-            `;
+            opt.innerHTML = `<button class="role-card" onclick="finalize('PRIVATE', 'mine')" style="width:100%">Private Management List</button>
+                             <button class="role-card" onclick="finalize('TEAM', 'team')" style="width:100%">Assign to Team Feed</button>`;
         }
     }
 
@@ -162,7 +171,7 @@
         closeDisp(); load();
     }
 
-    function closeDisp() { document.getElementById('dispatcher').style.display = 'none'; }
+    function closeDisp() { document.getElementById('dispatcher').classList.add('hidden'); }
     async function finish(id) { await _s.from('tasks').delete().eq('id', id); load(); }
     load();
 </script>
