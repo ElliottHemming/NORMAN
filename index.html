@@ -3,60 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NORMAN | v2.0</title>
+    <title>NORMAN | Strategic Ops</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { --charcoal: #2F3437; --sage: #87A96B; --red: #ff4d4d; --white: #ffffff; }
-        body { background: var(--charcoal); color: white; font-family: sans-serif; margin: 0; padding: 0; min-height: 100vh; overflow-x: hidden; }
+        :root { 
+            --bg: #121416; --card: #1C1F22; --sage: #87A96B; 
+            --red: #FF4D4D; --gold: #D4AF37; --text: #E0E0E0; --dim: #666; 
+        }
+        body { 
+            background: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, sans-serif; 
+            margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh;
+        }
         
-        /* THE LOBBY: Simple and centered */
-        #lobby { position: fixed; inset: 0; background: var(--charcoal); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .lobby-card { background: #3f4447; padding: 30px; border-radius: 20px; width: 80%; max-width: 350px; text-align: center; border: 1px solid var(--sage); }
-        
-        /* HUGE CLICKABLE BUTTONS */
-        .role-btn { background: var(--sage); color: white; border: none; padding: 20px; margin: 10px 0; border-radius: 12px; width: 100%; font-size: 18px; font-weight: bold; cursor: pointer; display: block; }
-        .gm-btn { background: #444; border: 1px solid var(--red); }
+        #lobby { position: fixed; inset: 0; background: var(--bg); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .glass-card { 
+            background: var(--card); padding: 40px; border-radius: 28px; width: 85%; max-width: 400px; 
+            text-align: center; border: 1px solid rgba(135, 169, 107, 0.2); box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        }
+        .btn-prime { 
+            background: rgba(255,255,255,0.03); border: 1px solid #333; color: white; padding: 20px; 
+            margin: 12px 0; border-radius: 16px; width: 100%; font-size: 16px; text-align: left; cursor: pointer;
+            transition: all 0.2s; display: flex; justify-content: space-between; align-items: center;
+        }
+        .btn-prime:active { background: var(--sage); color: var(--bg); }
 
-        /* THE MAIN APP: Hidden by default */
-        #main-app { display: none; padding: 20px; flex-direction: column; align-items: center; width: 100%; box-sizing: border-box; }
-        header { width: 100%; text-align: center; margin-bottom: 20px; }
+        header { width: 100%; padding: 20px; box-sizing: border-box; display: flex; justify-content: space-between; align-items: center; }
+        .mode-indicator { font-size: 10px; letter-spacing: 2px; color: var(--sage); font-weight: bold; text-transform: uppercase; }
         
-        .task-item { background: #3f4447; padding: 18px; border-radius: 15px; margin-bottom: 12px; border-left: 6px solid var(--sage); width: 90%; max-width: 400px; display: flex; justify-content: space-between; align-items: center; }
-        .task-item.mine { border-left-color: var(--red); }
+        #task-list { width: 92%; max-width: 450px; margin-top: 10px; padding-bottom: 120px; }
+        .task-card { 
+            background: var(--card); padding: 20px; border-radius: 20px; margin-bottom: 16px; 
+            border-left: 4px solid var(--sage); position: relative;
+        }
+        .task-card.ghost { border-left-color: var(--dim); opacity: 0.6; } 
+        .task-card.ops-task { border-left-color: var(--gold); }
 
-        /* MIC BUTTON */
-        .mic-btn { position: fixed; bottom: 30px; background: var(--sage); border: none; border-radius: 50%; width: 80px; height: 80px; font-size: 35px; cursor: pointer; z-index: 100; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
-        
-        /* DISPATCHER OVERLAY */
-        #dispatcher { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 10000; flex-direction: column; justify-content: center; align-items: center; }
+        .task-header { font-weight: 600; font-size: 17px; margin-bottom: 4px; }
+        .task-meta { font-size: 11px; color: var(--dim); text-transform: uppercase; }
+
+        .win-btn { 
+            background: var(--sage); color: var(--bg); border: none; padding: 10px 20px; 
+            border-radius: 12px; font-weight: bold; font-size: 12px; cursor: pointer;
+        }
+        .mic-btn { 
+            position: fixed; bottom: 40px; background: var(--sage); border: none; 
+            border-radius: 50%; width: 75px; height: 75px; font-size: 32px; 
+            box-shadow: 0 10px 30px rgba(135, 169, 107, 0.4); z-index: 100;
+        }
+
+        #dispatcher { 
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); 
+            z-index: 2000; flex-direction: column; justify-content: center; align-items: center; padding: 20px;
+        }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
 <div id="lobby">
-    <div class="lobby-card">
-        <h1 style="color:var(--sage); letter-spacing:4px;">🦉 NORMAN</h1>
-        <button class="role-btn" onclick="selectRole('foh')">BAR / FLOOR</button>
-        <button class="role-btn" onclick="selectRole('kitchen')">KITCHEN</button>
-        <button class="role-btn gm-btn" onclick="checkAuth()">GM COMMAND</button>
+    <div class="glass-card">
+        <h1 style="color:var(--sage); letter-spacing:6px; margin-bottom:40px;">NORMAN</h1>
+        <button class="btn-prime" onclick="checkAuth('ops')">💎 OPS AUDIT <span>→</span></button>
+        <button class="btn-prime" onclick="checkAuth('mine')">🔴 GM CONTROL <span>→</span></button>
+        <button class="btn-prime" onclick="selectRole('team')">👥 TEAM FEED <span>→</span></button>
     </div>
 </div>
 
-<div id="main-app">
+<div id="main-app" class="hidden">
     <header>
-        <h2 id="view-title" style="margin:0; color:var(--sage);"></h2>
-        <button onclick="location.reload()" style="background:none; border:none; color:#888; text-decoration:underline; padding:10px; cursor:pointer;">Logout</button>
+        <div class="mode-indicator" id="role-tag">Shift Mode</div>
+        <div onclick="location.reload()" style="font-size:10px; color:var(--dim);">LOGOUT</div>
     </header>
     <div id="task-list"></div>
-    <button class="mic-btn" onclick="startVoice()">🎙️</button>
+    <button class="mic-btn" id="mic" onclick="startVoice()">🎙️</button>
 </div>
 
 <div id="dispatcher">
-    <div style="background: #3f4447; padding: 25px; border-radius: 20px; width: 80%; text-align: center;">
-        <p id="captured-text" style="color:var(--sage); font-style:italic; margin-bottom:20px;"></p>
-        <button class="role-btn" onclick="finalize('Team', 'foh')">TEAM</button>
-        <button id="dispatch-mine" class="role-btn gm-btn" onclick="finalize('My List', 'mine')">MY LIST</button>
-        <button onclick="closeDisp()" style="background:none; border:none; color:white; margin-top:15px; opacity:0.5;">Cancel</button>
+    <div class="glass-card" style="border: 1px solid var(--sage);">
+        <p id="captured-text" style="color: var(--sage); font-style: italic; font-size: 20px; margin-bottom:30px;"></p>
+        <div id="destinations"></div>
+        <button onclick="closeDisp()" style="margin-top:20px; background:none; border:none; color:var(--dim);">Cancel</button>
     </div>
 </div>
 
@@ -64,53 +90,76 @@
     const _s = supabase.createClient('https://wodvuhuekebtgeagcxff.supabase.co', 'sb_publishable_u5loOdmFIhABc535x5At8g_PVfrVeRH');
     let speechBuffer = "";
     let userRole = "";
+    const MASTER_PIN = "1234";
 
-    function checkAuth() {
-        const pin = prompt("Enter PIN (1234):");
-        if (pin === "1234") selectRole('mine');
+    function checkAuth(role) {
+        const pin = prompt("Secure Access PIN:");
+        if (pin === MASTER_PIN) selectRole(role);
+        else alert("Access Denied.");
     }
 
     function selectRole(role) {
         userRole = role;
-        // NUCLEAR OPTION: Physically remove the lobby from the DOM
-        const lobby = document.getElementById('lobby');
-        if (lobby) lobby.remove(); 
-        
-        document.getElementById('main-app').style.display = 'flex';
-        document.getElementById('view-title').innerText = role.toUpperCase();
-        if (role !== 'mine') document.getElementById('dispatch-mine').style.display = 'none';
+        document.getElementById('lobby').style.display = 'none';
+        document.getElementById('main-app').classList.remove('hidden');
+        document.getElementById('role-tag').innerText = role === 'ops' ? 'Ops Audit Mode' : (role === 'mine' ? 'GM Oversight' : 'Team Execution');
         load();
     }
 
     async function load() {
         let query = _s.from('tasks').select('*').order('created_at', {ascending: false});
-        if (userRole !== 'mine') query = query.eq('department', userRole);
+        if (userRole === 'team') query = query.eq('department', 'team');
         const { data } = await query;
         if(data) {
-            document.getElementById('task-list').innerHTML = data.map(t => `
-                <div class="task-item ${t.department === 'mine' ? 'mine' : ''}">
-                    <b>${t.task_name}</b>
-                    <button onclick="finish('${t.id}')" style="background:none; border:1px solid #666; color:white; padding:8px; border-radius:8px; cursor:pointer;">WIN</button>
-                </div>
-            `).join('');
+            document.getElementById('task-list').innerHTML = data.map(t => {
+                const isGhost = (userRole === 'mine' && t.department === 'team');
+                const isOps = (t.assigned_to === 'OPS');
+                return `
+                    <div class="task-card ${isGhost ? 'ghost' : ''} ${isOps ? 'ops-task' : ''}">
+                        <div style="display:flex; justify-content:space-between; align-items:start;">
+                            <div>
+                                <div class="task-meta">${isOps ? '💎 Ops Audit' : t.assigned_to}</div>
+                                <div class="task-header">${t.task_name}</div>
+                            </div>
+                            ${!isGhost ? `<button class="win-btn" onclick="finish('${t.id}')">WIN</button>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
     }
 
     function startVoice() {
         const rec = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-        rec.lang = 'en-GB';
+        rec.onstart = () => { document.getElementById('mic').style.boxShadow = "0 0 40px var(--red)"; };
         rec.onresult = (e) => {
             speechBuffer = e.results[0][0].transcript;
             document.getElementById('captured-text').innerText = `"${speechBuffer}"`;
+            setupDispatch();
             document.getElementById('dispatcher').style.display = 'flex';
+            document.getElementById('mic').style.boxShadow = "";
         };
         rec.start();
     }
 
-    async function finalize(label, type) {
-        await _s.from('tasks').insert([{ task_name: speechBuffer, assigned_to: label, department: type }]);
-        closeDisp();
-        load();
+    function setupDispatch() {
+        const dest = document.getElementById('destinations');
+        if (userRole === 'ops') {
+            dest.innerHTML = `
+                <button class="btn-prime" style="border-color:var(--gold)" onclick="finalize('GM', 'mine')">Assign to GM</button>
+                <button class="btn-prime" style="border-color:var(--sage)" onclick="finalize('TEAM', 'team')">Assign to Team</button>
+            `;
+        } else {
+            dest.innerHTML = `
+                <button class="btn-prime" style="border-color:var(--red)" onclick="finalize('PERSONAL', 'mine')">Private List</button>
+                <button class="btn-prime" style="border-color:var(--sage)" onclick="finalize('TEAM', 'team')">Team Feed</button>
+            `;
+        }
+    }
+
+    async function finalize(label, dept) {
+        await _s.from('tasks').insert([{ task_name: speechBuffer, assigned_to: userRole === 'ops' ? 'OPS' : label, department: dept }]);
+        closeDisp(); load();
     }
 
     function closeDisp() { document.getElementById('dispatcher').style.display = 'none'; }
