@@ -3,184 +3,220 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NORMAN | The Routing Engine</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>NORMAN | Cognitive Ops</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { 
-            --bg: #0f1113; --card: #1a1d20; --sage: #a3cfbb; --gold: #e9c46a; 
-            --text: #f8f9fa; --dim: #6c757d; --border: rgba(255,255,255,0.05);
+            --bg: #0d0e10; --card: #1a1c1e; --sage: #a3cfbb; --gold: #e9c46a; 
+            --text: #f8f9fa; --dim: #6c757d; --border: rgba(255,255,255,0.08);
+            --accent: #25282c; --red: #e76f51;
         }
         body { 
             background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; 
-            margin: 0; padding: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+            margin: 0; padding: 0; min-height: 100vh; overflow-x: hidden;
         }
-        
-        /* LOBBY */
-        #lobby { position: fixed; inset: 0; background: var(--bg); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .hero { font-size: 28px; letter-spacing: 10px; font-weight: 200; color: var(--sage); margin-bottom: 50px; }
-        
-        /* CARDS & BUTTONS */
-        .route-card { 
-            background: var(--card); border: 1px solid var(--border); padding: 22px; 
-            border-radius: 20px; width: 85%; max-width: 350px; margin-bottom: 15px;
-            display: flex; justify-content: space-between; align-items: center; cursor: pointer;
-            transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .route-card:active { transform: scale(0.97); background: #25282c; }
-        .tag { font-size: 10px; letter-spacing: 1.5px; color: var(--dim); text-transform: uppercase; margin-bottom: 4px; }
-        .label { font-size: 18px; font-weight: 400; }
 
-        /* THE CAPTURE OVERLAY */
+        /* --- LOBBY STYLING --- */
+        #lobby { 
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100vh; text-align: center; background: radial-gradient(circle at top, #1c1e22, #0d0e10);
+        }
+        .hero-brand { font-size: 42px; letter-spacing: 14px; font-weight: 200; color: var(--sage); margin-bottom: 4px; }
+        .tagline { font-size: 9px; letter-spacing: 4px; color: var(--dim); text-transform: uppercase; margin-bottom: 60px; }
+
+        .role-btn {
+            background: var(--card); border: 1px solid var(--border); padding: 24px 30px;
+            border-radius: 24px; width: 85%; max-width: 340px; margin-bottom: 16px;
+            display: flex; justify-content: space-between; align-items: center;
+            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .role-btn:active { transform: scale(0.96); background: var(--accent); }
+
+        /* --- MAIN DASHBOARD --- */
+        #main-app { padding: 20px; display: none; max-width: 500px; margin: 0 auto; padding-bottom: 120px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .mode-chip { background: rgba(163, 207, 187, 0.1); border: 1px solid var(--sage); color: var(--sage); padding: 6px 14px; border-radius: 100px; font-size: 10px; letter-spacing: 1px; }
+
+        /* --- THE DEPLOYMENT TRACE CARDS --- */
+        .task-card {
+            background: var(--card); border: 1px solid var(--border); padding: 20px;
+            border-radius: 22px; margin-bottom: 14px; position: relative;
+            animation: slideUp 0.4s ease-out;
+        }
+        .trace-line { font-size: 10px; color: var(--dim); margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
+        .trace-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); }
+        .task-title { font-size: 17px; font-weight: 400; line-height: 1.4; margin-bottom: 15px; }
+
+        /* --- ACTION BUTTONS --- */
+        .action-bar { display: flex; gap: 10px; }
+        .btn-win { background: var(--sage); color: #000; border: none; padding: 10px 20px; border-radius: 12px; font-weight: 600; font-size: 12px; flex: 1; }
+        .btn-deploy { background: transparent; color: var(--gold); border: 1px solid var(--gold); padding: 10px 20px; border-radius: 12px; font-size: 12px; flex: 1; }
+
+        /* --- CAPTURE OVERLAY (THE SWITCHBOARD) --- */
         #dispatcher { 
             position: fixed; inset: 0; background: rgba(10,12,14,0.98); z-index: 2000;
-            display: none; flex-direction: column; align-items: center; padding: 40px 20px;
+            display: none; flex-direction: column; align-items: center; padding: 40px 20px; text-align: center;
         }
-        .preview-text { font-size: 22px; font-weight: 300; text-align: center; margin-bottom: 40px; line-height: 1.5; color: var(--sage); }
+        .preview-text { font-size: 24px; font-weight: 300; margin: 40px 0; color: var(--sage); line-height: 1.4; }
+        .gate-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 360px; }
+        .gate-btn { background: var(--card); border: 1px solid var(--border); padding: 30px 10px; border-radius: 20px; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
 
-        /* LISTS */
-        #main-app { width: 100%; max-width: 450px; padding: 20px; box-sizing: border-box; }
-        .section-title { font-size: 11px; letter-spacing: 2px; color: var(--dim); margin: 30px 0 15px 5px; text-transform: uppercase; }
-        .task-item { 
-            background: var(--card); padding: 20px; border-radius: 18px; margin-bottom: 12px;
-            border-left: 3px solid var(--sage); display: flex; justify-content: space-between; align-items: center;
+        /* --- MIC --- */
+        .mic-trigger { 
+            position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
+            width: 80px; height: 80px; background: var(--sage); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; font-size: 32px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5); z-index: 100;
         }
-        .task-item.individual { border-left-color: var(--gold); }
-        .task-item.myself { border-left-color: #9b59b6; }
+        .mic-trigger.active { background: var(--red); box-shadow: 0 0 30px var(--red); }
 
-        .mic-btn { 
-            position: fixed; bottom: 40px; background: var(--sage); border: none;
-            width: 70px; height: 70px; border-radius: 50%; font-size: 28px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 100;
-        }
-        .mic-btn.active { background: #e76f51; box-shadow: 0 0 25px #e76f51; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
         .hidden { display: none !important; }
-        .win-btn { background: rgba(163, 207, 187, 0.1); color: var(--sage); border: 1px solid var(--sage); padding: 8px 15px; border-radius: 10px; font-size: 11px; }
     </style>
 </head>
 <body>
 
 <div id="lobby">
-    <div class="hero">NORMAN</div>
-    <div class="route-card" onclick="enter('admin')">
-        <div><div class="tag">Executive</div><div class="label">Admin Mode</div></div>
-        <span style="color:var(--sage)">→</span>
+    <div class="hero-brand">NORMAN</div>
+    <div class="tagline">The Cognitive Capture System</div>
+    
+    <div class="role-btn" onclick="enter('shift')">
+        <div style="text-align: left;"><div style="font-size: 9px; color: var(--sage); letter-spacing: 2px;">REACTIVE</div><div style="font-size: 19px;">Shift Mode</div></div>
+        <span style="opacity: 0.3;">→</span>
     </div>
-    <div class="route-card" onclick="enter('shift')">
-        <div><div class="tag">Reactive</div><div class="label">Shift Mode</div></div>
-        <span style="color:var(--sage)">→</span>
+
+    <div class="role-btn" onclick="enter('admin')">
+        <div style="text-align: left;"><div style="font-size: 9px; color: var(--gold); letter-spacing: 2px;">EXECUTIVE</div><div style="font-size: 19px;">Admin Mode</div></div>
+        <span style="opacity: 0.3;">→</span>
     </div>
 </div>
 
-<div id="main-app" class="hidden">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div class="tag" id="mode-name">SHIFT MODE</div>
-        <div onclick="location.reload()" style="font-size:10px; color:var(--dim)">LOGOUT</div>
+<div id="main-app">
+    <div class="header">
+        <div class="mode-chip" id="current-view">SHIFT MODE</div>
+        <div onclick="location.reload()" style="font-size: 10px; color: var(--dim); letter-spacing: 1px;">LOGOUT</div>
     </div>
-    <div id="task-list"></div>
-    <button class="mic-btn" id="mic" onclick="startVoice()">🎙️</button>
+    
+    <div id="content-list"></div>
+
+    <div class="mic-trigger" id="master-mic" onclick="startCapture()">🎙️</div>
 </div>
 
 <div id="dispatcher">
-    <div class="tag" style="color:var(--sage)">Who is this for?</div>
-    <div id="speech-preview" class="preview-text"></div>
+    <div style="font-size: 10px; letter-spacing: 3px; color: var(--dim);">ROUTING ENGINE</div>
+    <div class="preview-text" id="voice-preview">"Capture successful..."</div>
     
-    <div id="gate-1" style="width:100%; display:flex; flex-direction:column; align-items:center;">
-        <div class="route-card" onclick="showGate('team')"><div><div class="label">FOR: Team</div></div><span>→</span></div>
-        <div class="route-card" onclick="showGate('staff')"><div><div class="label">FOR: Individual</div></div><span>→</span></div>
-        <div class="route-card" onclick="showGate('me')"><div><div class="label">FOR: Myself</div></div><span>→</span></div>
+    <div class="gate-grid" id="gate-main">
+        <div class="gate-btn" onclick="showGate('team')">FOR: Team</div>
+        <div class="gate-btn" onclick="showGate('staff')">FOR: Individual</div>
+        <div class="gate-btn" onclick="showGate('me')">FOR: Myself</div>
+        <div class="gate-btn" onclick="showGate('ops')">FOR: Strategy</div>
     </div>
 
-    <div id="gate-team" class="hidden" style="width:100%;">
-        <div class="route-card" onclick="finalize('Team', 'FOH')">FOH</div>
-        <div class="route-card" onclick="finalize('Team', 'Bar')">Bar</div>
-        <div class="route-card" onclick="finalize('Team', 'Kitchen')">Kitchen</div>
-    </div>
-
-    <div id="gate-staff" class="hidden" style="width:100%;">
-        <div class="route-card" onclick="finalize('Individual', 'Sarah')">Sarah</div>
-        <div class="route-card" onclick="finalize('Individual', 'Dave')">Dave</div>
-        <div class="route-card" onclick="finalize('Individual', 'Abbie')">Abbie</div>
-    </div>
-
-    <div id="gate-me" class="hidden" style="width:100%;">
-        <div class="route-card" onclick="finalize('Myself', 'Building')">Building / Maint.</div>
-        <div class="route-card" onclick="finalize('Myself', 'People')">Rota / People</div>
-        <div class="route-card" onclick="finalize('Myself', 'Money')">Money / Finance</div>
-        <div class="route-card" onclick="finalize('Myself', 'Standards')">Compliance</div>
-    </div>
+    <div class="gate-grid hidden" id="gate-sub">
+        </div>
+    
+    <button onclick="closeDispatcher()" style="margin-top: 50px; background: none; border: none; color: var(--dim); font-size: 11px;">CANCEL CAPTURE</button>
 </div>
 
 <script>
+    // --- SUPABASE CONFIG ---
     const _s = supabase.createClient('https://wodvuhuekebtgeagcxff.supabase.co', 'sb_publishable_u5loOdmFIhABc535x5At8g_PVfrVeRH');
-    let speechBuffer = "";
-    let appView = "";
+    
+    let currentRole = "";
+    let capturedText = "";
 
-    function enter(mode) {
-        appView = mode;
+    function enter(role) {
+        currentRole = role;
         document.getElementById('lobby').classList.add('hidden');
-        document.getElementById('main-app').classList.remove('hidden');
-        document.getElementById('mode-name').innerText = mode.toUpperCase();
-        load();
+        document.getElementById('main-app').style.display = 'block';
+        document.getElementById('current-view').innerText = role === 'admin' ? 'EXECUTIVE ADMIN' : 'SHIFT COMPANION';
+        loadData();
     }
 
-    function startVoice() {
+    // --- CAPTURE LOGIC (THE DRIVE-TIME BREAKTHROUGH) ---
+    function startCapture() {
         const rec = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-        rec.onstart = () => document.getElementById('mic').classList.add('active');
+        rec.onstart = () => document.getElementById('master-mic').classList.add('active');
         rec.onresult = (e) => {
-            speechBuffer = e.results[0][0].transcript;
-            document.getElementById('speech-preview').innerText = `"${speechBuffer}"`;
-            document.getElementById('dispatcher').style.display = 'flex';
-            document.getElementById('mic').classList.remove('active');
-            showGate('main');
+            capturedText = e.results[0][0].transcript;
+            document.getElementById('master-mic').classList.remove('active');
+            openDispatcher();
         };
         rec.start();
     }
 
+    function openDispatcher() {
+        document.getElementById('voice-preview').innerText = `"${capturedText}"`;
+        document.getElementById('dispatcher').style.display = 'flex';
+        showGate('main');
+    }
+
     function showGate(gate) {
-        document.getElementById('gate-1').classList.add('hidden');
-        document.getElementById('gate-team').classList.add('hidden');
-        document.getElementById('gate-staff').classList.add('hidden');
-        document.getElementById('gate-me').classList.add('hidden');
-        
-        if(gate === 'main') document.getElementById('gate-1').classList.remove('hidden');
-        else document.getElementById(`gate-${gate}`).classList.remove('hidden');
+        const main = document.getElementById('gate-main');
+        const sub = document.getElementById('gate-sub');
+        main.classList.add('hidden');
+        sub.classList.remove('hidden');
+
+        let options = [];
+        if(gate === 'team') options = ['Bar', 'FOH', 'Kitchen', 'Cellar'];
+        if(gate === 'staff') options = ['George', 'Sarah', 'Tom', 'Abbie'];
+        if(gate === 'me') options = ['Building', 'Money', 'People', 'Compliance'];
+        if(gate === 'ops') options = ['Ideas', 'Expansion', 'Menu', 'Brand'];
+
+        sub.innerHTML = options.map(opt => `<div class="gate-btn" onclick="finalize('${gate}', '${opt}')">${opt}</div>`).join('');
     }
 
-    async function finalize(route, sub) {
-        await _s.from('tasks').insert([{ task_name: speechBuffer, assigned_to: sub, department: route.toLowerCase() }]);
+    async function finalize(cat, sub) {
+        const trace = `Captured by GM | Target: ${sub}`;
+        await _s.from('tasks').insert([{ 
+            task_name: capturedText, 
+            assigned_to: sub, 
+            department: cat, 
+            notes: trace 
+        }]);
+        closeDispatcher();
+        loadData();
+    }
+
+    function closeDispatcher() {
         document.getElementById('dispatcher').style.display = 'none';
-        load();
+        document.getElementById('gate-sub').classList.add('hidden');
     }
 
-    async function load() {
-        let { data } = await _s.from('tasks').select('*').order('created_at', {ascending: false});
+    // --- DATA LOADING & TRACE DISPLAY ---
+    async function loadData() {
+        const { data } = await _s.from('tasks').select('*').order('created_at', {ascending: false});
+        const container = document.getElementById('content-list');
+        
         if(data) {
-            let listHtml = "";
-            if(appView === 'shift') {
-                // Shift Mode: Only show Team Tasks
-                listHtml = '<div class="section-title">Team Feed</div>' + data.filter(t => t.department === 'team').map(t => taskTemplate(t)).join('');
-            } else {
-                // Admin Mode: Group everything
-                const me = data.filter(t => t.department === 'myself');
-                const staff = data.filter(t => t.department === 'individual');
-                listHtml = '<div class="section-title">My Notebooks</div>' + me.map(t => taskTemplate(t)).join('') +
-                           '<div class="section-title">Staff Observations</div>' + staff.map(t => taskTemplate(t)).join('');
-            }
-            document.getElementById('task-list').innerHTML = listHtml;
+            container.innerHTML = data.map(t => `
+                <div class="task-card">
+                    <div class="trace-line">
+                        <div class="trace-dot"></div>
+                        ${t.notes || 'Direct Task'}
+                    </div>
+                    <div class="task-title">${t.task_name}</div>
+                    <div class="action-bar">
+                        ${currentRole === 'admin' ? `<button class="btn-deploy" onclick="deploy('${t.id}')">DEPLOY</button>` : ''}
+                        <button class="btn-win" onclick="win('${t.id}')">WIN</button>
+                    </div>
+                </div>
+            `).join('');
         }
     }
 
-    function taskTemplate(t) {
-        return `
-            <div class="task-item ${t.department}">
-                <div><div class="tag">${t.assigned_to}</div><div style="font-size:16px">${t.task_name}</div></div>
-                <button class="win-btn" onclick="finish('${t.id}')">WIN</button>
-            </div>
-        `;
+    async function win(id) { await _s.from('tasks').delete().eq('id', id); loadData(); }
+    
+    function deploy(id) {
+        alert("DEPLOYMENT TRACE: Select shift leader to direct this task...");
+        // Future deployment logic here
     }
 
-    async function finish(id) { await _s.from('tasks').delete().eq('id', id); load(); }
-    load();
+    function closeDispatcher() { document.getElementById('dispatcher').style.display = 'none'; }
 </script>
+
 </body>
 </html>
